@@ -1,42 +1,11 @@
 import pytest
 import numpy as np
-import pandas as pd
 import scipy.sparse as sp
 from sklearn.preprocessing import LabelEncoder
 from pipeliner.recommendations.recommender import (
-    ItemBasedRecommenderPandas,
     UserBasedRecommender,
     SimilarityRecommender,
 )
-
-
-@pytest.mark.parametrize(
-    "input, expected",
-    [
-        (["I00001"], ["I00002", "I00012", "I00003", "I00011", "I00004"]),
-        (["I00002"], ["I00001", "I00003", "I00004", "I00012", "I00005"]),
-        (["I00003"], ["I00002", "I00004", "I00001", "I00005", "I00006"]),
-        (["I00004"], ["I00003", "I00005", "I00002", "I00006", "I00001"]),
-        (["I00005"], ["I00004", "I00006", "I00003", "I00007", "I00002"]),
-        (["I00006"], ["I00005", "I00007", "I00004", "I00008", "I00003"]),
-    ],
-)
-def test_ItemBasedRecommenderPandas(
-    fx_item_similarity_matrix_toy, input, expected
-):
-    rec = ItemBasedRecommenderPandas().fit(fx_item_similarity_matrix_toy)
-    predictions = rec.predict(input)[0]
-    np.testing.assert_array_equal(predictions, expected)
-
-def test_ItemBasedRecommenderPandas_fit_error():
-    with pytest.raises(ValueError):
-        ItemBasedRecommenderPandas().fit("cat")
-
-
-def test_ItemBasedRecommenderPandas_predict_error(fx_item_similarity_matrix_toy):
-    rec = ItemBasedRecommenderPandas().fit(fx_item_similarity_matrix_toy)
-    with pytest.raises(ValueError):
-        rec.predict([1.3])
 
 
 @pytest.mark.parametrize(
@@ -89,11 +58,13 @@ def test_SimilarityRecommender_fit_error():
 
 
 def test_SimilarityRecommender_omit_input():
-    similarity_matrix = np.array([
-        [1, 0, 1],
-        [0, 1, 0],
-        [1, 0, 1],
-    ])
+    similarity_matrix = np.array(
+        [
+            [1, 0, 1],
+            [0, 1, 0],
+            [1, 0, 1],
+        ]
+    )
     similarity_matrix_sparse = sp.csr_array(similarity_matrix)
     rec = SimilarityRecommender(5)
     rec.fit(similarity_matrix_sparse)
@@ -102,20 +73,19 @@ def test_SimilarityRecommender_omit_input():
     for pred, expected in zip(predictions, [[2], [], [0]]):
         np.testing.assert_array_equal(pred, expected)
 
+
 @pytest.mark.parametrize(
     "input, expected",
     [
-        (['U00001'], ['I00012', 'I00005', 'I00011', 'I00006', 'I00007']),
-        (['U00002'], ['I00001', 'I00006', 'I00012', 'I00007', 'I00008']),
-        (['U00003'], ['I00002', 'I00007', 'I00001', 'I00008', 'I00009']),
-        (['U00004'], ['I00003', 'I00002', 'I00001', 'I00008', 'I00009']),
-        (['U00005'], ['I00004', 'I00003', 'I00002', 'I00009', 'I00010']),
-        (['U00006'], ['I00005', 'I00004', 'I00003', 'I00010', 'I00011']),
+        (["U00001"], ["I00012", "I00005", "I00011", "I00006", "I00007"]),
+        (["U00002"], ["I00001", "I00006", "I00012", "I00007", "I00008"]),
+        (["U00003"], ["I00002", "I00007", "I00001", "I00008", "I00009"]),
+        (["U00004"], ["I00003", "I00002", "I00001", "I00008", "I00009"]),
+        (["U00005"], ["I00004", "I00003", "I00002", "I00009", "I00010"]),
+        (["U00006"], ["I00005", "I00004", "I00003", "I00010", "I00011"]),
     ],
 )
-def test_UserBasedRecommender_predict(
-    fx_user_item_matrix_toy, input, expected
-):
+def test_UserBasedRecommender_predict(fx_user_item_matrix_toy, input, expected):
     item_ids = fx_user_item_matrix_toy.columns.to_numpy()
     user_ids = fx_user_item_matrix_toy.index.to_numpy()
     item_encoder = LabelEncoder().fit(item_ids)

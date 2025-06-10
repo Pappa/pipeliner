@@ -1,63 +1,9 @@
 import numpy as np
-import pandas as pd
 import scipy.sparse as sp
 from sklearn.base import BaseEstimator
 from pipeliner.recommendations.transformer import (
     SimilarityTransformer,
 )
-
-
-class ItemBasedRecommenderPandas(BaseEstimator):
-    """Item-based collaborative filtering recommender.
-
-    Args:
-        n (int): Number of recommendations to generate for each item.
-    """
-
-    n: int
-    similarity_matrix: pd.DataFrame
-    user_item_matrix: pd.DataFrame
-
-    def __init__(self, n=5):
-        self.n = n
-
-    def fit(self, X, y=None):
-        """Fits the recommender to the given data.
-
-        Args:
-            X pd.DataFrame
-
-        Returns:
-            self: Returns the instance itself.
-        """
-        if isinstance(X, pd.DataFrame):
-            self.similarity_matrix = X
-        else:
-            raise ValueError("Input should be pd.DataFrame")
-
-        return self
-
-    def _get_recommendations(self, item_id) -> np.array:
-        if not isinstance(item_id, str):
-            raise ValueError("Input should be str")
-
-        item_recommendations = (
-            self.similarity_matrix[item_id]
-            .drop([item_id], errors="ignore")
-            .sort_values(ascending=False, kind="stable")
-        )
-        return np.array(item_recommendations.head(self.n).index)
-
-    def predict(self, X) -> np.array:
-        """Predicts n item recommendations for each item_id provided.
-
-        Args:
-          X (Sequence): List of item_id
-
-        Returns:
-          list of np.array
-        """
-        return [self._get_recommendations(item) for item in X]
 
 
 class UserBasedRecommender(BaseEstimator):
@@ -105,14 +51,12 @@ class UserBasedRecommender(BaseEstimator):
         user_mask[[0], [id]] = False
         user_sorter = np.argsort(1 - matrix.toarray()[0], kind="stable")
         sorted_mask = user_mask.toarray()[0][user_sorter]
-        similar_users = user_sorter[sorted_mask][:self.n]
+        similar_users = user_sorter[sorted_mask][: self.n]
 
         return similar_users
 
     def _get_exclusions(self, id: int) -> np.array:
-        single_user_ratings = self._user_item_matrix[
-            [id]
-        ]
+        single_user_ratings = self._user_item_matrix[[id]]
         rated = (single_user_ratings > 0).nonzero()[1]
         return rated
 
@@ -130,8 +74,7 @@ class UserBasedRecommender(BaseEstimator):
         mean_ratings = filtered_matrix.toarray().T.mean(axis=1)
         item_sorter = np.argsort(1 - mean_ratings, kind="stable")
 
-        return items_to_use[item_sorter][:self.n]
-    
+        return items_to_use[item_sorter][: self.n]
 
     def predict(self, X) -> list[np.array]:
         """Predicts n recommendations for each id provided
